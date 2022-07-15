@@ -1,0 +1,211 @@
+# Crisis severity quintile
+
+#libraries imports
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from numpy import argmax
+from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OneHotEncoder
+
+#import the clean data
+df1 = pd.read_excel ("master_dataset.xlsx")
+
+#create a copy to avoid reloading the df everytime since it is very heavy
+df = df1.copy()
+
+df
+
+pd.set_option('display.max_rows',None)
+df.isna().sum()
+
+df.head()
+
+#keeping only 2019-2020-2021
+df.drop(df1[df1["year"]==2017].index, inplace=True)
+df.drop(df1[df1["year"]==2018].index, inplace=True)
+
+### cleaning a little
+
+df.columns.tolist()
+
+## handling missing values
+
+pd.set_option('display.max_rows',None)
+df.isna().sum()
+
+#### Fill Na with 0s
+
+tofillna = ["received_aid_cash", "received_aid_food", "received_aid_water","received_aid_fuel","received_aid_shelter", "received_aid_seasonal_items", "received_aid_protection", "received_aid_education", "received_aid_healthcare", "lack_secure_tenure", "treat_water"]
+for col in tofillna:
+        df.loc[:,col].fillna(0, inplace=True)
+
+pd.set_option('display.max_rows',None)
+df.isna().sum()
+
+#### Columns to drop
+
+#df.columns.tolist()
+todrop = [  "received_aid_none","aid_satisfaction", "household_hunger_category",  
+"water_source", 'education_barriers_not_function',
+ 'education_barriers_safety', "integration", 0,
+ 'education_barriers_cost',
+ 'education_barriers_unable_to_register',
+ 'education_barriers_health_issue',
+ 'education_barriers_physical_limitation',
+ 'education_barriers_overcrowded',
+ 'education_barriers_poor_infrastructure',
+ 'education_barriers_curriculum_not_adapted',
+ 'education_barriers_working',
+ 'education_barriers_parental_refusal',
+ 'education_barriers_lack_interest',
+ 'education_barriers_distance_learning_lack_resources',
+ 'education_barriers_distance_learning_no_alternative',
+ 'education_barriers_none',
+ 'education_barriers_other', 'difficulty_access_healthcare',
+ 'difficulty_access_healthcare_cost',
+ 'difficulty_access_healthcare_lack_qualified_staff',
+ 'difficulty_access_healthcare_lack_civil_doc',
+ 'difficulty_access_healthcare_no_referral_phc',
+ 'difficulty_access_healthcare_phc_closed',
+ 'difficulty_access_healthcare_too_far',
+ 'difficulty_access_healthcare_staff_refused_treatment',
+ 'difficulty_access_healthcare_lack_medicine',
+ 'difficulty_access_healthcare_no_treatment_phc',
+ 'difficulty_access_healthcare_not_inclusive_disability',
+ 'difficulty_access_healthcare_no_female_staff','no_movement_3',
+ 'no_movement_12',
+ 'no_movement_returnee_12','employment_barrier_competition',
+ 'employment_barrier_too_far',
+ 'employment_barrier_only_low_available',
+ 'employment_barrier_underqualified_for_jobs',
+ 'employment_barrier_no_wasta',
+ 'employment_barrier_lack_jobs_women', 'return_security_aoo',
+ 'return_security_aod',
+ 'return_livelihoods_aod',
+ 'return_secure_hlp',
+ 'return_secure_docs',
+ 'return_limited_services',
+ 'return_available_services_aoo',
+ 'return_uxo',
+ 'return_pull_factors',
+ 'no_return_security_aoo',
+ 'no_return_lack_livelihoods',
+ 'no_return_lack_shelter',
+ 'no_return_lack_docs',
+ 'no_return_lack_services',
+ 'no_return_pull_factors',
+ 'no_return_uxo', "lack_hlp", "market_barrier", "insufficient_amount_water"]
+
+for col in todrop:
+    df.drop(col, axis=1, inplace=True)
+
+#### Columns to one hot encode
+
+##### shelter type
+
+##### peut etre garder seulement critical_shelter et pas shelter.type (ou inverse)
+
+df["critical_shelter"].unique()
+
+df["shelter.shelter_type"].unique()
+
+dfa = pd.get_dummies(df["shelter.shelter_type"], prefix='shelter')
+df = pd.concat([df, dfa], axis=1)
+df.drop(["shelter.shelter_type"], axis=1, inplace=True)
+
+##### fcs_category
+
+df["fcs_category"].unique()
+
+dfa = pd.get_dummies(df["fcs_category"], prefix='fcs')
+df = pd.concat([df, dfa], axis=1)
+df.drop(["fcs_category"], axis=1, inplace=True)
+
+##### difficulty_disability_services
+
+df["difficulty_disability_services"][df["members_disabled"]==0].value_counts() #if have indeed 2 vlaues that are not na, then
+df.loc[(df.members_disabled ==0), 'difficulty_disability_services'] = np.nan # replace these two values with NA
+#now replace all NAs with "no_disabled_ppl"
+
+df["difficulty_disability_services"] =df["difficulty_disability_services"].replace(np.nan,"no_disabled_ppl")
+
+dfa = pd.get_dummies(df["difficulty_disability_services"], prefix='difficulty_disability')
+df = pd.concat([df, dfa], axis=1)
+df.rename(columns={"difficulty_disability_0.0": "difficulty_disability_no", "difficulty_disability_1.0": "difficulty_disability_yes"}, inplace=True)
+df.drop(["difficulty_disability_services"], axis=1, inplace=True)
+df.drop(["difficulty_disability_no_disabled_ppl"], axis=1, inplace=True)
+
+df.columns
+
+#### gender head hh
+
+dfa = pd.get_dummies(df["gender_head"], prefix='gender_head')
+df = pd.concat([df, dfa], axis=1)
+df.drop(["gender_head"], axis=1, inplace=True)
+
+#df["received_aid_test"] = df["received_aid_cash"] + df["received_aid_food"] + df["received_aid_water"] + df["received_aid_fuel"] + df["received_aid_shelter"] + df["received_aid_seasonal_items"] + df["received_aid_protection"] + df["received_aid_education"] + df["received_aid_healthcare"] - df["received_aid"]
+
+#df["received_aid_test"].value_counts()
+
+df.columns
+
+#checking if gender_head_female and gender_head_male contain the same info
+df["gender_head_test1"]= df['gender_head_female']+df['gender_head_male'] 
+df["gender_head_test1"].value_counts() #always equals 1 - means there is no additional info in these columns
+#checking if 'female_headed' contains same info as gender_head_female
+df["gender_head_test1"] = df['gender_head_female']-df["female_headed"]
+df["gender_head_test1"].value_counts() #always=0, means there is no additional info in these columns
+
+todrop = ["gender_head_test1", "gender_head_female", "gender_head_male"]
+for col in todrop:
+    df.drop(col, axis=1, inplace=True)
+
+#### Still to handle after big cleaning
+
+df.info()
+
+#fill the 70 missing values of num_hh_member with the mean of the column (5.19)
+df["num_hh_member"].fillna(np.mean(df["num_hh_member"]), inplace=True)
+
+todrop2 = ["problem_water_quality", "basic_services"]
+for col in todrop2:
+    df.drop(col, axis=1, inplace=True)
+
+#### later on: save these variables if possible (all less than 10'000 missing values)
+
+#todrop3 = ["not_attending_formal", "dropped_from_school"]
+
+df["not_attending_formal"] =df["not_attending_formal"].replace(np.nan,"no_child")
+df["dropped_from_school"] =df["dropped_from_school"].replace(np.nan,"no_child")
+df["children_working"] =df["children_working"].replace(np.nan,"no_child")
+df["child_distress"] =df["child_distress"].replace(np.nan,"no_child")
+df["child_married"] =df["child_married"].replace(np.nan,"no_child")
+
+dfa = pd.get_dummies(df["not_attending_formal"], prefix='not_attending_formal')
+df = pd.concat([df, dfa], axis=1)
+df.drop(["not_attending_formal"], axis=1, inplace=True)
+
+dfa = pd.get_dummies(df["dropped_from_school"], prefix='dropped_from_school')
+df = pd.concat([df, dfa], axis=1)
+df.drop(["dropped_from_school"], axis=1, inplace=True)
+df.drop(["dropped_from_school_no_child"], axis=1, inplace=True)
+
+dfa = pd.get_dummies(df["children_working"], prefix='children_working')
+df = pd.concat([df, dfa], axis=1)
+df.drop(["children_working"], axis=1, inplace=True)
+df.drop(["children_working_no_child"], axis=1, inplace=True)
+
+dfa = pd.get_dummies(df["child_distress"], prefix='child_distress')
+df = pd.concat([df, dfa], axis=1)
+df.drop(["child_distress"], axis=1, inplace=True)
+df.drop(["child_distress_no_child"], axis=1, inplace=True)
+
+dfa = pd.get_dummies(df["child_married"], prefix='child_married')
+df = pd.concat([df, dfa], axis=1)
+df.drop(["child_married"], axis=1, inplace=True)
+df.drop(["child_married_no_child"], axis=1, inplace=True)
+
+df.columns
+
+df.to_excel("final_clean.xlsx", index=False)
