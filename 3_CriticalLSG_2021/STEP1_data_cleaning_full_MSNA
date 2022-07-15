@@ -1,0 +1,111 @@
+# Crisis severity quintile
+
+## Data cleaning and preparation for PCA
+### Version 2: 2020 as base year, en utilisant les critical indicators des LSG
+
+#libraries imports
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from numpy import argmax
+from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OneHotEncoder
+pd.set_option('display.max_rows',None)
+
+#import the clean data
+df1 = pd.read_excel ("master_dataset.xlsx")
+
+#create a copy to avoid reloading the df everytime since it is very heavy
+df = df1.copy()
+
+#looking at missing values
+df.isna().sum()
+
+#### selecting only the needed years
+
+#keeping only 2020-2021
+df.drop(df1[df1["year"]==2017].index, inplace=True)
+df.drop(df1[df1["year"]==2018].index, inplace=True)
+df.drop(df1[df1["year"]==2019].index, inplace=True)
+
+#### Listing the Critical LSG indicators and keeping only those
+
+#keep only the CRITICAL indicators in the LSG
+LSGcapacitygap = ["ngo_assistance", "stress", "crisis", "emergency"]
+LSGvulenrabilities = ["single_headed", "female_headed"]
+LSGeducation =["not_attending_formal"]
+LSGFS = ["fcs_category","household_hunger_category"]
+LSGprotection = ["child_married", "children_working"]
+LSGSNFI = ["critical_shelter"]
+LSGwash = ["imptoved_water_source", "insufficient_amount_water"] #missing some variables here (dont exist in our dataset)
+LSGall = LSGcapacitygap +LSGvulenrabilities +LSGeducation+LSGFS+LSGprotection+LSGSNFI+LSGwash
+
+#other columns needed later
+needed = ["year", "X_uuid", "population_group", "district", "governorate", "weight"]
+
+#all columns to keep
+tokeep = LSGall + needed
+
+df = df[df.columns[df.columns.isin(tokeep)]]
+
+df.head()
+
+## handling missing values
+
+pd.set_option('display.max_rows',None)
+df.isna().sum()
+
+##### It seems that when children_working or not_attening_formal is missing, it is because there is no children in the HH. I still have doubts because there is not the same number of missing variables for both. This is a caveat to keep in mind, especially now that these are 2 out of a few variables only.
+
+df["children_working"].replace(np.nan,0, inplace=True) #the missing values are because these HH have no children
+
+df["not_attending_formal"].replace(np.nan,0, inplace=True) #same, missing because have no children (?)
+
+df["child_married"].replace(np.nan,0, inplace=True)
+
+### One hot encoding fcs_category and household_hunder_category
+
+dfa = pd.get_dummies(df["fcs_category"], prefix='fcs')
+df = pd.concat([df, dfa], axis=1)
+df.drop(["fcs_category"], axis=1, inplace=True)
+
+dfa = pd.get_dummies(df["household_hunger_category"], prefix='hhs')
+df = pd.concat([df, dfa], axis=1)
+df.drop(["household_hunger_category"], axis=1, inplace=True)
+
+df.head()
+
+### saving final reduced dataset
+
+df.to_excel("final_clean_v2.xlsx", index=False)
+
+### Checking how many rows are identical
+
+Problem: because I only have a few variables in this dataset, and that they are all dummies, there are many rows taht are perfectly identical. That is: There are 3140 rows that are exactly identical one to another, a second group of 2780 identical, then 852, 777, ... 
+
+This leads to a problem in the PCA whereby there are many observations that obtain the exact same score. It also leads the Principal components to not be continuous, but almost categorical
+
+df.columns
+
+df["checkunique"] = df["critical_shelter"].astype(str) + df["not_attending_formal"].astype(str)
+
+df["checkunique"] = df["critical_shelter"].astype(str) + df["not_attending_formal"].astype(str) + df["stress"].astype(str) + df["crisis"].astype(str) + df["emergency"].astype(str) + df["female_headed"].astype(str) + df["single_headed"].astype(str) + df["children_working"].astype(str) + df["ngo_assistance"].astype(str) + df["child_married"].astype(str) + df["imptoved_water_source"].astype(str) + df["insufficient_amount_water"].astype(str) + df["fcs_Acceptable"].astype(str) + df["fcs_Borderline"].astype(str) + df["fcs_Poor"].astype(str) + df["hhs_Severe hunger in the household (4-6)"].astype(str) + df["hhs_Little to no hunger in the household (0-1)"].astype(str) + df["hhs_Moderate hunger in the household (2-3)"].astype(str)
+
+dfoccurences = pd.DataFrame(df["checkunique"].value_counts())
+
+dfoccurences = dfoccurences.rename_axis('unique').reset_index()
+
+#the one case that happens 3140 times in the dataset
+df[df["checkunique"]==dfoccurences.iloc[0,0]].iloc[0,]
+#not enough water, no hunger, fcs acceptable,  stress level (everything else 0)
+
+#the case that is present 2780 times in the dataset
+df[df["checkunique"]==dfoccurences.iloc[1,0]].iloc[0,]
+#not hunger, not enough water, fcs acceptable, everything else 0
+
+#present 852 times in the dataset
+df[df["checkunique"]==dfoccurences.iloc[3,0]].iloc[0,]
+#no hunger, fcs acceptable, stress level, critical shelter
+
+
+
