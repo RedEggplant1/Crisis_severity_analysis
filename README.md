@@ -1,1 +1,37 @@
 # Crisis_severity_analysis
+
+Crisis severity quintiles
+Files
+All files can be found here, and on Synology under Handover documents – internships – 2022_07_RM_Internship
+
+Motivation and literature review
+Population Services international (PSI) developed a methodology to compute nationally representative Wealth Quintiles . The aim was to measure relative poverty by dividing the population of a country into 5 groups, from poorest to wealthiest, based on a set of variables, and observing the evolution of these quintiles over time. 
+Our goal is to use the same methodology as they did, in order to measure the severity of a crisis. The general goal is to create an index of “crisis severity” composed of various variables, and to divide the population into quintiles based on this index. This approach could enable the analysis of the evolution of a crisis over time, for instance by observing the evolution of the quintiles over the years.
+
+Methodology
+As a first step, we followed the same methodology as that of the Wealth Quintiles. That is: selecting variables, reducing the dimensionality of the dataset thanks to a Principal Component Analysis (PCA). Then using the first component of the PCA to divide the population into quintiles. Finally, to observe the evolution of these quintiles over time.
+
+
+Step 1: MCNA data from Iraq, 2019-2021
+We started by applying this methodology to MCNA data from Iraq. Laura (the previous RDD intern) had cleaned and prepared MCNA data from Iraq from 2019 to 2021, assessing the comparability of the variables over the years and selecting those that were sufficiently comparable. The coding files (on Python) for this section is to be found under  the folder “1_MCNA_1921”, and is broken down into 3 parts.
+1.	One hot encoding: This is the preparation of the dataset so that it becomes a clean input for the PCA. I drop variables with too many missing values, input some values where possible, one-hot-encode variables that are not dummies yet, and standardize the data so that for every variable the values are bound between 0 and 1.
+2.	PCA: This is the script where the principal component analysis is performed. There is some visualisation of the principal components and interpretation of their meaning. Then I divide the population into quintiles based on the first component and observe the variation of these quintiles over the years. 
+Two main challenges: It is very difficult to interpret the components of the PCA because we input many different variables and the algorithm is a black box. Hence, it is difficult to interpret the evolution of the quintiles over the years. Is an evolution towards higher quintiles positive or negative? Secondly, the variance of the data captured by the first 3 components of the PCA is very low, which mean we lose a large amount of information during the PCA.
+3.	Clustering: Because of the challenges listed above, we go away from the Wealth Quintile methodology, and try to exploit the outcomes of the PCA in another way. Instead of computing quintiles, we use the principal components of the PCA as inputs into an unsupervised clustering algorithm. This way, we group observations that are similar into clusters, and try to interpret the meaning of these clusters and their evolution. We use a K-Means clustering algorithm, inputting different numbers of components from the PCA. You will find some visualisations for clustering with 2 and 3 components of the PCA.
+The challenge remains the same: it is challenging to interpret the meaning of the clusters. Additionally, we are unsure how to observe the evolution of these clusters over time.
+After these three steps, we presented our work and came up with a list of angles to work on. We decided to change the variables we input into the model, and to re-work the unsupervised clustering algorithm. We also discussed including geographical and population group variables into the interpretation and analysis of the clusters.
+See also the powerpoint presentation that shows the process and results until here.
+
+
+Step 2- critical indicators of the LSG from MCNA data in Iraq, 2020-2021
+We now follow the same methodology as the one described above (one-hot-encoding, PCA, clustering), but we input different data. From the MCNA data in Iraq, we only use the critical indicators of the LSG as features for our model (18 variables in total). We can only use the years 2020 and 2021, as these are the only 2 years for which we have comparability for (almost) all critical indicators.
+By changing the inputted data, we obtain better results after the PCA: the variance explained by the first 3 components is now around 35%, much better than in the first step. We use again the first component of the PCA to divide the population into 5 quintiles, and keep the same quintile limits over the next years to observe the evolution of the quintiles. The interpretation of the quintiles is slightly easier now that less variables are inputted into the model. Still, we face the same 2 main challenges as described above, and decide to use the principal components to do unsupervised clustering.
+This time, we test more unsupervised clustering algorithms, each time with various numbers of principal components included. We settle for K-Means clustering with 2 components again as this is the model that performs best based on our metrics. 
+This algorithm enables us to single out a cluster, which we call “Cluster 0”, which is clearly different from the rest of the population, and represents around 4.5% of the Iraqi population (after weighting). The file “STEP4_cluster0” explores this cluster, which contains households that are clearly worse off that the rest of the households. You can find descriptive statistics of cluster0 vs the full sample.
+Thanks to the unsupervised algorithm, we found a cluster which represents a minority of the Iraqi population, which clearly is worse off than the rest of the population (in terms of education, access to water, FCS,…). The next step is to see how this cluster evolves over the years. To do so, we apply a supervised classification algorithm (K-neighbors clustering), training on the data of 2020, which classifies the observations either as “belongs to cluster 0” or “belongs to another cluster”. We then apply this algorithm to 2021, which enables us to classify 2021 observations into the cluster0 that was defined based on 2020. We conclude that the proportion of the Iraqi population that belongs to cluster0 rises from 2020 to 2021.
+See the powerpoint presentation and the scripts for more detailed information on the methodology and more interpretation of the results.
+
+Conclusion
+Applying this exploratory methodology to MCNA data was a way to analyse this data with a different perspective. Methodologically, it is interesting to observe what can be done with ML on our data. Doing so could be an opportunity to analyse our data differently in the future.
+Analytically, we managed to cluster 4.5% of the population (in 2020) into a group of households that is worse off, and that could need different humanitarian actions than the rest of the population. We also managed, thanks to a supervised algorithm, to observe the evolution of this group over time, and concluded that grew between 2020 and 2021. 
+The main caveat in my opinion is that ML algorithms are often black boxes, which makes it difficult to interpret the results. This presents ethical challenges: can we base humanitarian decisions on ML algorithms? 
