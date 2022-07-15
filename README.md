@@ -1,8 +1,6 @@
 # Crisis_severity_analysis
 
 Crisis severity quintiles
-Files
-All files can be found here, and on Synology under Handover documents – internships – 2022_07_RM_Internship
 
 Motivation and literature review
 Population Services international (PSI) developed a methodology to compute nationally representative Wealth Quintiles . The aim was to measure relative poverty by dividing the population of a country into 5 groups, from poorest to wealthiest, based on a set of variables, and observing the evolution of these quintiles over time. 
@@ -13,7 +11,7 @@ As a first step, we followed the same methodology as that of the Wealth Quintile
 
 
 Step 1: MCNA data from Iraq, 2019-2021
-We started by applying this methodology to MCNA data from Iraq. Laura (the previous RDD intern) had cleaned and prepared MCNA data from Iraq from 2019 to 2021, assessing the comparability of the variables over the years and selecting those that were sufficiently comparable. The coding files (on Python) for this section is to be found under  the folder “1_MCNA_1921”, and is broken down into 3 parts.
+We started by applying this methodology to MCNA data from Iraq. Laura had cleaned and prepared MCNA data from Iraq from 2019 to 2021, assessing the comparability of the variables over the years and selecting those that were sufficiently comparable. The coding files (on Python) for this section is to be found under  the folder “1_MCNA_1921”, and is broken down into 3 parts.
 1.	One hot encoding: This is the preparation of the dataset so that it becomes a clean input for the PCA. I drop variables with too many missing values, input some values where possible, one-hot-encode variables that are not dummies yet, and standardize the data so that for every variable the values are bound between 0 and 1.
 2.	PCA: This is the script where the principal component analysis is performed. There is some visualisation of the principal components and interpretation of their meaning. Then I divide the population into quintiles based on the first component and observe the variation of these quintiles over the years. 
 Two main challenges: It is very difficult to interpret the components of the PCA because we input many different variables and the algorithm is a black box. Hence, it is difficult to interpret the evolution of the quintiles over the years. Is an evolution towards higher quintiles positive or negative? Secondly, the variance of the data captured by the first 3 components of the PCA is very low, which mean we lose a large amount of information during the PCA.
